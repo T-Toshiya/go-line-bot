@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  line-bot:
+    container_name: line_bot
+    build: .
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
