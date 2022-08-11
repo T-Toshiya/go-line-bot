@@ -42,9 +42,53 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
-					replyMessage := fmt.Sprintf("user id is %s", event.Source.UserID)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
-						log.Print(err)
+					switch message.Text {
+					case "承認する":
+						richMemu := linebot.RichMenu{
+							Size: linebot.RichMenuSize{
+								Width:  2500,
+								Height: 1686,
+							},
+							Selected:    false,
+							Name:        "Nice richmenu",
+							ChatBarText: "Tap here",
+							Areas: []linebot.AreaDetail{
+								{
+									Bounds: linebot.RichMenuBounds{
+										X:      0,
+										Y:      0,
+										Width:  2500,
+										Height: 1686,
+									},
+									Action: linebot.RichMenuAction{
+										Type: "postback",
+										Data: "action=test&itemid=123",
+									},
+								},
+							},
+						}
+						res, err := bot.CreateRichMenu(richMemu).Do()
+						if err != nil {
+							log.Print(err)
+						}
+						fmt.Println(res.RichMenuID)
+						if _, err := bot.UploadRichMenuImage(res.RichMenuID, "./image/richmenu.png").Do(); err != nil {
+							log.Print(err)
+						}
+
+						if event.Source.UserID != os.Getenv("USER_ID") {
+							bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("承認に失敗しました")).Do()
+						} else {
+							if _, err := bot.LinkUserRichMenu(event.Source.UserID, res.RichMenuID).Do(); err != nil {
+								log.Print(err)
+							}
+							bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("承認されました")).Do()
+						}
+					case "社内ツールを使う":
+						replyMessage := fmt.Sprintf("user id is %s", event.Source.UserID)
+						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
+							log.Print(err)
+						}
 					}
 				case *linebot.StickerMessage:
 					replyMessage := fmt.Sprintf("sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
@@ -53,47 +97,6 @@ func main() {
 					}
 				}
 			}
-		}
-	})
-
-	http.HandleFunc("/link", func(w http.ResponseWriter, r *http.Request) {
-		richMemu := linebot.RichMenu{
-			Size: linebot.RichMenuSize{
-				Width:  2500,
-				Height: 1686,
-			},
-			Selected:    false,
-			Name:        "Nice richmenu",
-			ChatBarText: "Tap here",
-			Areas: []linebot.AreaDetail{
-				{
-					Bounds: linebot.RichMenuBounds{
-						X:      0,
-						Y:      0,
-						Width:  2500,
-						Height: 1686,
-					},
-					Action: linebot.RichMenuAction{
-						Type: "postback",
-						Data: "action=test&itemid=123",
-					},
-				},
-			},
-		}
-		res, err := bot.CreateRichMenu(richMemu).Do()
-		if err != nil {
-			log.Print(err)
-		}
-		fmt.Println(res.RichMenuID)
-		if _, err := bot.UploadRichMenuImage(res.RichMenuID, "./image/richmenu.png").Do(); err != nil {
-			log.Print(err)
-		}
-
-		e := r.ParseForm()
-		log.Println(e)
-
-		if _, err := bot.LinkUserRichMenu(r.Form.Get("user_id"), res.RichMenuID).Do(); err != nil {
-			log.Print(err)
 		}
 	})
 
