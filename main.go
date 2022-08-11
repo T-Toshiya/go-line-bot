@@ -56,6 +56,47 @@ func main() {
 		}
 	})
 
+	http.HandleFunc("/link", func(w http.ResponseWriter, r *http.Request) {
+		richMemu := linebot.RichMenu{
+			Size: linebot.RichMenuSize{
+				Width:  2500,
+				Height: 1686,
+			},
+			Selected:    false,
+			Name:        "Nice richmenu",
+			ChatBarText: "Tap here",
+			Areas: []linebot.AreaDetail{
+				{
+					Bounds: linebot.RichMenuBounds{
+						X:      0,
+						Y:      0,
+						Width:  2500,
+						Height: 1686,
+					},
+					Action: linebot.RichMenuAction{
+						Type: "postback",
+						Data: "action=test&itemid=123",
+					},
+				},
+			},
+		}
+		res, err := bot.CreateRichMenu(richMemu).Do()
+		if err != nil {
+			log.Print(err)
+		}
+		fmt.Println(res.RichMenuID)
+		if _, err := bot.UploadRichMenuImage(res.RichMenuID, "./image/richmenu.png").Do(); err != nil {
+			log.Print(err)
+		}
+
+		e := r.ParseForm()
+		log.Println(e)
+
+		if _, err := bot.LinkUserRichMenu(r.Form.Get("user_id"), res.RichMenuID).Do(); err != nil {
+			log.Print(err)
+		}
+	})
+
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
 		log.Fatal(err)
 	}
